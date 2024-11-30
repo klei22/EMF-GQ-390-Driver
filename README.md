@@ -12,8 +12,8 @@ monitoring and visualization.
 
 1. [Installation](#installation)
 2. [Python Scripts](#python-scripts)
-   - [RealTime Data Retrieval](#realtime-data-retrieval)
-   - [Send Data to InfluxDB](#send-data-to-influxdb)
+   - [RealTime Data Retrieval](#1-realtime-data-retrieval)
+   - [Send Data to InfluxDB](#2-send-data-to-influxdb)
 3. [General Usage](#general-usage)
 5. [Troubleshooting](#troubleshooting)
 
