@@ -1,6 +1,10 @@
 # GQ EMF-390 PySerial Driver
 
-This repository provides Python scripts to interface with the GQ EMF-390 device using the `pyserial` library. It includes functionality for retrieving electromagnetic field (EMF) data, environmental field (EF) data, RF density, and more. Additionally, it supports sending data to an InfluxDB database for monitoring and visualization.
+This repository provides Python scripts to interface with the GQ EMF-390 device
+using the `pyserial` library. It includes functionality for retrieving
+electromagnetic field (EMF) data, environmental field (EF) data, RF density,
+and more. Additionally, it supports sending data to an InfluxDB database for
+monitoring and visualization.
 
 ---
 
@@ -8,10 +12,9 @@ This repository provides Python scripts to interface with the GQ EMF-390 device 
 
 1. [Installation](#installation)
 2. [Python Scripts](#python-scripts)
-   - [Real-Time Data Retrieval](#real-time-data-retrieval)
+   - [RealTime Data Retrieval](#realtime-data-retrieval)
    - [Send Data to InfluxDB](#send-data-to-influxdb)
 3. [General Usage](#general-usage)
-4. [GQ EMF-390 Datasheet](#gq-emf-390-datasheet)
 5. [Troubleshooting](#troubleshooting)
 
 ---
@@ -54,7 +57,7 @@ This repository provides Python scripts to interface with the GQ EMF-390 device 
 
 ## Python Scripts
 
-### 1. Real-Time Data Retrieval
+### 1. RealTime Data Retrieval
 
 The `EMF390.py` script provides a Python class for communicating with the GQ EMF-390 device. Example usage:
 
