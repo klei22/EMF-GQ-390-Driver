@@ -1,17 +1,19 @@
+# EMF390.py
 import serial
 import time
+import re
 
 class EMF390:
     """
     A class to interface with the GQ EMF-390 device via serial communication.
     """
 
-    def __init__(self, port="/dev/gqemf390", baudrate=57600, timeout=1):
+    def __init__(self, port="/dev/gqemf390", baudrate=115200, timeout=1):
         """
         Initialize the EMF390 object.
 
         :param port: Serial port to connect to the device (default: '/dev/gqemf390')
-        :param baudrate: Baud rate for the serial connection (default: 57600)
+        :param baudrate: Baud rate for the serial connection (default: 115200)
         :param timeout: Timeout for serial read/write operations (default: 1 second)
         """
         self.port = port
@@ -44,51 +46,95 @@ class EMF390:
         if not self.serial or not self.serial.is_open:
             raise Exception("Serial port is not open.")
         
+        # Flush input and output buffers
+        self.serial.reset_input_buffer()
+        self.serial.reset_output_buffer()
+
         # Send the command
         self.serial.write(command.encode())
         time.sleep(0.1)  # Wait for device response
+
+        # Read response from the device
         response = self.serial.read_all().decode(errors="ignore").strip()
+        # Debug: print the raw response
+        # print(f"Raw response: '{response}'")
         return response
+
+    def _parse_response(self, response, pattern, value_name, flags=0):
+        """
+        Parse the device response using the given pattern.
+
+        :param response: The raw response string from the device.
+        :param pattern: The regex pattern to extract the value.
+        :param value_name: The name of the value for error messages.
+        :param flags: Regex flags to use (e.g., re.IGNORECASE).
+        :return: The extracted float value or None if parsing fails.
+        """
+        match = re.search(pattern, response, flags)
+        if match:
+            try:
+                return float(match.group(1))
+            except ValueError as e:
+                print(f"Error converting {value_name} to float: {e}")
+                return None
+        else:
+            print(f"Unexpected {value_name} response format.")
+            print(f"Expected pattern: '{pattern}'")
+            print(f"Actual response: '{response}'")
+            return None
 
     def get_emf(self):
         """Retrieve the EMF value from the device."""
-        return self.send_command("<GETEMF>>")
+        response = self.send_command("<GETEMF>>")
+        pattern = r'EMF\s*=\s*([\d\.]+)'
+        return self._parse_response(response, pattern, 'EMF')
 
     def get_ef(self):
         """Retrieve the EF value from the device."""
-        return self.send_command("<GETEF>>")
+        response = self.send_command("<GETEF>>")
+        pattern = r'EF\s*=\s*([\d\.]+)'
+        return self._parse_response(response, pattern, 'EF')
 
-    def get_rf_watts(self):
-        """Retrieve RF Watts from the device."""
-        return self.send_command("<GETRFWATTS>>")
+    def get_rf_band_data(self):
+        """
+        Retrieve the RF band data from the device.
 
-    def get_rf_dbm(self):
-        """Retrieve RF -dBm from the device."""
-        return self.send_command("<GETRFDBM>>")
+        :return: A list of dBm values.
+        """
+        response = self.send_command("<GETBANDDATA>>")
+        # Debug: print the raw response
+        print(f"Raw RF band data response: '{response}'")
+        # Response may include ' dBm' at the end or within the data
+        try:
+            # Remove any ' dBm' suffix if present
+            response = response.replace(' dBm', '').strip()
+            # Remove any other non-numeric characters or extra text
+            response = re.sub(r'[^\d\.,\-]', '', response)
+            data_str_list = response.split(',')
+            data_values = [float(value.strip()) for value in data_str_list if value.strip()]
+            return data_values
+        except ValueError as e:
+            print(f"Error parsing RF band data: {e}")
+            return None
 
-    def get_rf_density(self):
-        """Retrieve RF Density from the device."""
-        return self.send_command("<GETRFDENSITY>>")
-
-    def get_total_density(self):
-        """Retrieve total RF density from the device."""
-        return self.send_command("<GETRFTOTALDENSITY>>")
-
-    def get_density_peak(self):
-        """Retrieve total RF density peak from the device."""
-        return self.send_command("<GETRFTOTALDENSITYPEAK>>")
+    def get_mode(self):
+        """Retrieve the current mode of the device."""
+        response = self.send_command("<GETMODE>>")
+        return response  # Mode is returned as text
 
     def get_version(self):
         """Retrieve the device version."""
-        return self.send_command("<GETVER>>")
-
-    def turn_power_on(self):
-        """Turn the device power on."""
-        return self.send_command("<POWERON>>")
-
-    def turn_power_off(self):
-        """Turn the device power off."""
-        return self.send_command("<POWEROFF>>")
+        response = self.send_command("<GETVER>>")
+        # Adjust the pattern to extract version number
+        pattern = r'GQ-EMF390v2Re\s*([\d\.a-zA-Z]+)'
+        match = re.search(pattern, response)
+        if match:
+            return match.group(1)
+        else:
+            print("Unexpected Version response format.")
+            print(f"Expected pattern: '{pattern}'")
+            print(f"Actual response: '{response}'")
+            return response  # Return the raw response if pattern doesn't match
 
     def close(self):
         """Close the serial connection."""
@@ -99,11 +145,26 @@ class EMF390:
 # Example usage
 if __name__ == "__main__":
     try:
-        emf = EMF390(port="/dev/gqemf390", baudrate=57600)
+        emf = EMF390(port="/dev/gqemf390", baudrate=115200)
 
-        print("Device Version:", emf.get_version())
-        print("EMF Value:", emf.get_emf())
-        print("EF Value:", emf.get_ef())
+        version = emf.get_version()
+        print("Device Version:", version)
+
+        emf_value = emf.get_emf()
+        if emf_value is not None:
+            print("EMF Value:", emf_value, "mG")
+
+        ef_value = emf.get_ef()
+        if ef_value is not None:
+            print("EF Value:", ef_value, "V/m")
+
+        rf_band_data = emf.get_rf_band_data()
+        if rf_band_data is not None:
+            print("RF Band Data (first 10 values):", rf_band_data[:10])
+            # You can process rf_band_data as needed
+
+        mode = emf.get_mode()
+        print("Current Mode:", mode)
 
         emf.close()
     except Exception as e:
